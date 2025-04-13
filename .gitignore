@@ -1,4 +1,39 @@
-__pycache__/
+# 忽略 Python 編譯的檔案
 *.pyc
-stock/         # 虛擬環境
+*.pyo
+*.pyd
+__pycache__/
+
+# 忽略虛擬環境
+venv/
+stock/
+
+# 忽略 IDE 或編輯器的設定檔案
+.vscode/
+.idea/
+
+# 忽略 Docker 相關檔案
+*.log
+docker-compose.yml
+Dockerfile
+
+# 忽略其他暫存檔案
+*.swp
+*.bak
+
+# 忽略指令行工具/臨時檔案
+*.log
+*.tmp
+
+# 忽略 OS 系統生成的檔案
+.DS_Store
+Thumbs.db
+
+# 忽略 Windows 特有檔案
+*.exe
+*.dll
+
 .env
+
+# Redis 的資料快照檔案，通常是臨時資料
+dump.rdb
