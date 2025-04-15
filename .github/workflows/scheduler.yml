@@ -1,9 +1,10 @@
-name: Run stock dip notify daily
+name: 股票到價通知排程
 
 on:
   schedule:
-    # 每天下午 4:00（台灣時間 = UTC+8 → UTC 08:00）
-    - cron: '0 8 * * *'
+    # 台灣時間 = UTC+8 → UTC 08:00
+    # e.g. 每天上午 9 點執行：'0 1 * * *'
+    - cron: '0 1 * * *'
   workflow_dispatch: # 手動執行也可以
 
 jobs:
