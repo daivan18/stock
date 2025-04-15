@@ -39,7 +39,7 @@ def check_and_notify():
     notify_message = ""
 
     with engine.connect() as conn:
-        result = conn.execute(text("SELECT symbol, add_price FROM stock_watchlist"))
+        result = conn.execute(text("SELECT symbol, target_price FROM watchlist"))
 
         for row in result:
             symbol = row.symbol
