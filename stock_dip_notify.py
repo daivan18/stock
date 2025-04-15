@@ -43,15 +43,15 @@ def check_and_notify():
 
         for row in result:
             symbol = row.symbol
-            add_price = float(row.add_price)
+            target_price = float(row.target_price)
 
             try:
                 current_price = get_realtime_price(symbol)
 
-                print(f"{symbol} 現價: {current_price} ➜ 加碼價: {add_price}")
+                print(f"{symbol} 現價: {current_price} ➜ 加碼價: {target_price}")
 
-                if add_price > 0 and current_price <= add_price:
-                    notify_message += f"\n📉 {symbol} 跌破 {add_price}（現價 {current_price}）"
+                if target_price > 0 and current_price <= target_price:
+                    notify_message += f"\n📉 {symbol} 跌破 {target_price}（現價 {current_price}）"
 
             except Exception as e:
                 print(f"[錯誤] 處理 {symbol} 時發生例外：{e}")
