@@ -5,13 +5,14 @@ from utils.stock_price import get_realtime_price
 from db import get_connection
 from datetime import datetime
 import requests
+import os
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
 # ==== LINE Messaging API Token ====
-LINE_CHANNEL_ACCESS_TOKEN = "65UAgtUyFgoSJ1FrrRqYuyiT5ceBOD3uZnbyUNpCRvD4HlTTqpMFi5k4sQKRQOre+bdUHZ+VvgGV/gHezxfe8GELUhww0NeNLxtkzqMIKg/4qnirC1aD1JdwjHk+opw2c/sUiY6703Ex3gsiZHMB8QdB04t89/1O/w1cDnyilFU="
-YOUR_USER_ID = "Ud3dcaf1d184e45faf4741f6a2fd50cec"  # ← 請手動填入！
+LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_TOKEN")
+YOUR_USER_ID = os.getenv("LINE_USER_ID")
 
 class Stock:
     def __init__(self, symbol, price, add_price, change_percent=None, gap_percent=0):  # 設定預設值為 0
@@ -43,7 +44,7 @@ async def read_stocks(request: Request):
     stocks = []
     for row in rows:
         symbol, add_price = row
-        price = get_realtime_price(symbol)
+        price = get_realtime_price(symbol) 
         stock = Stock(symbol, price, add_price)
         stock.calculate_change_percent()
         stock.calculate_gap_percent()
