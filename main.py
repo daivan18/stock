@@ -1,50 +1,78 @@
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-import redis
 from utils.stock_price import get_realtime_price
-from fastapi.responses import RedirectResponse
+from db import get_connection
+from datetime import datetime
+import requests
 
 app = FastAPI()
-
 templates = Jinja2Templates(directory="templates")
 
-r = redis.StrictRedis(host='localhost', port=6379, db=0, decode_responses=True)
+# ==== LINE Messaging API Token ====
+LINE_CHANNEL_ACCESS_TOKEN = "65UAgtUyFgoSJ1FrrRqYuyiT5ceBOD3uZnbyUNpCRvD4HlTTqpMFi5k4sQKRQOre+bdUHZ+VvgGV/gHezxfe8GELUhww0NeNLxtkzqMIKg/4qnirC1aD1JdwjHk+opw2c/sUiY6703Ex3gsiZHMB8QdB04t89/1O/w1cDnyilFU="
+YOUR_USER_ID = "Ud3dcaf1d184e45faf4741f6a2fd50cec"  # ← 請手動填入！
 
 class Stock:
-    def __init__(self, symbol, price, add_price):
+    def __init__(self, symbol, price, add_price, change_percent=None, gap_percent=0):  # 設定預設值為 0
         self.symbol = symbol
-        self.price = price
-        self.add_price = add_price
+        self.price = float(price)
+        self.add_price = float(add_price)
+        self.change_percent = change_percent
+        self.gap_percent = gap_percent if gap_percent is not None else 0  # 確保 gap_percent 不為 None
+
+
+    def calculate_change_percent(self):
+        # 模擬 2% 漲幅，實際情況可以從API獲取
+        self.change_percent = round((self.price - self.price * 0.98) / self.price * 100, 2)  # 假設漲了2%
+
+    def calculate_gap_percent(self):
+        if self.add_price > 0:
+            self.gap_percent = round((self.add_price - self.price) / self.price * 100, 2)
+        else:
+            self.gap_percent = None
 
 @app.get("/", response_class=HTMLResponse)
 async def read_stocks(request: Request):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT symbol, target_price FROM watchlist")
+    rows = cursor.fetchall()
+
     stocks = []
-    for key in r.keys("stock:*"):
-        data = r.hgetall(key)
-        stock = Stock(data['symbol'], data['price'], data['add_price'])
+    for row in rows:
+        symbol, add_price = row
+        price = get_realtime_price(symbol)
+        stock = Stock(symbol, price, add_price)
+        stock.calculate_change_percent()
+        stock.calculate_gap_percent()
         stocks.append(stock)
+
+    conn.close()
     return templates.TemplateResponse("stocks.html", {"request": request, "stocks": stocks})
 
 @app.post("/add_stock")
 async def add_stock(request: Request, symbol: str = Form(...)):
-    # 去除空白並轉大寫
     symbol = symbol.strip().upper()
 
     try:
-        # 取得即時股價
         price = get_realtime_price(symbol)
-
         if price == -1:
             print(f"[錯誤] 無法取得 {symbol} 的股價，新增失敗")
             return RedirectResponse("/", status_code=302)
 
-        # 儲存到 Redis，預設加碼價為 0
-        r.hmset(f"stock:{symbol}", {
-            "symbol": symbol,
-            "price": price,
-            "add_price": 0
-        })
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            INSERT INTO watchlist (symbol, target_price, updated_by, updated_at)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (symbol) DO NOTHING;
+        """, (symbol, 0, "system", datetime.now()))
+
+        conn.commit()
+        conn.close()
 
         print(f"[成功] 已新增 {symbol}，現價為 {price}")
         return RedirectResponse("/", status_code=302)
@@ -55,30 +83,45 @@ async def add_stock(request: Request, symbol: str = Form(...)):
 
 @app.post("/delete_stock", response_class=HTMLResponse)
 async def delete_stock(request: Request, symbol: str = Form(...)):
-    r.delete(f"stock:{symbol}")
-    return templates.TemplateResponse("stocks.html", {"request": request, "stocks": get_stocks()})
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM watchlist WHERE symbol = %s", (symbol,))
+    conn.commit()
+    conn.close()
+    return RedirectResponse("/", status_code=302)
 
-def get_stocks():
-    stocks = []
-    for key in r.keys("stock:*"):
-        data = r.hgetall(key)
-        symbol = data['symbol']
-        add_price = data.get('add_price', '0')
-        
-        # 用 Yahoo 抓即時價格
-        realtime_price = get_realtime_price(symbol)
-
-        # 寫回 Redis 更新價格（可選）
-        r.hset(key, "price", realtime_price)
-
-        stock = Stock(symbol, realtime_price, add_price)
-        stocks.append(stock)
-    return stocks
-
-# 設定加碼價位
 @app.post("/set_add_price")
 async def set_add_price(symbol: str = Form(...), add_price: float = Form(...)):
-    key = f"stock:{symbol}"
-    if r.exists(key):
-        r.hset(key, "add_price", add_price)
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE watchlist
+        SET target_price = %s, updated_by = %s, updated_at = %s
+        WHERE symbol = %s
+    """, (add_price, "system", datetime.now(), symbol))
+    conn.commit()
+    conn.close()
+    return RedirectResponse("/", status_code=302)
+
+def send_line_message(message):
+    url = "https://api.line.me/v2/bot/message/push"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {LINE_CHANNEL_ACCESS_TOKEN}"
+    }
+    payload = {
+        "to": YOUR_USER_ID,
+        "messages": [
+            {
+                "type": "text",
+                "text": message
+            }
+        ]
+    }
+    r = requests.post(url, headers=headers, json=payload)
+    print(f"LINE 回應：{r.status_code} - {r.text}")
+
+@app.post("/notify") 
+async def notify_test(symbol: str = Form(...)):
+    send_line_message(f"[測試] 股票 {symbol} 推播成功！")
     return RedirectResponse("/", status_code=302)
