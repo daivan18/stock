@@ -5,7 +5,9 @@ on:
     # 台灣時間 = UTC+8 → UTC 08:00
     # e.g. 每天上午 9 點執行：'0 1 * * *'
     - cron: '0 1 * * *'
-  workflow_dispatch: # 手動執行也可以
+    # 每 30 分鐘執行一次
+    # - cron: "*/30 * * * *" 
+  workflow_dispatch: # 允許手動執行
 
 jobs:
   run-notify:
