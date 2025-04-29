@@ -1,5 +1,3 @@
-# redis_client.py
-
 import redis
 import os
 

@@ -5,49 +5,53 @@
     <title>Stock Watchlist</title>
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
-  <body class="bg-gray-100 text-gray-900">
+  <body class="bg-gray-100 text-gray-900 relative pb-20">
     <div class="max-w-6xl mx-auto py-10 px-4">
-      <h1 class="text-3xl font-bold mb-6 text-center">📈 Watch List</h1>
+      <!-- 頁首 -->
+      <div class="text-center mb-6">
+        <h1 class="text-3xl font-bold">📈 Watch List</h1>
+      </div>
 
       <!-- 🔔 訊息提示 -->
-      {% if request.query_params.get("msg") == "exist" %}
-      <div
-        class="p-4 mb-6 rounded border bg-yellow-100 border-yellow-500 text-yellow-700"
-      >
-        ⚠️ 股票
-        <strong>{{ request.query_params.get("symbol") }}</strong>
-        已在觀察清單中。
-      </div>
-      {% elif request.query_params.get("msg") == "added" %}
-      <div
-        class="p-4 mb-6 rounded border bg-green-100 border-green-500 text-green-700"
-      >
-        ✅ 成功新增
-        <strong>{{ request.query_params.get("symbol") }}</strong>，現價 ${{
-        request.query_params.get("price") }}
-      </div>
-      {% elif request.query_params.get("msg") == "price_set" %}
-      <div
-        class="p-4 mb-6 rounded border bg-blue-100 border-blue-500 text-blue-700"
-      >
-        💾 加碼價已設定：<strong
-          >{{ request.query_params.get("symbol") }}</strong
+      <div id="messageBox">
+        {% if request.query_params.get("msg") == "exists" %}
+        <div
+          class="p-4 mb-6 rounded border bg-yellow-100 border-yellow-500 text-yellow-700"
         >
-        → ${{ request.query_params.get("price") }}
+          ⚠️ 股票
+          <strong>{{ request.query_params.get("symbol") }}</strong>
+          已在觀察清單中。
+        </div>
+        {% elif request.query_params.get("msg") == "added" %}
+        <div
+          class="p-4 mb-6 rounded border bg-green-100 border-green-500 text-green-700"
+        >
+          ✅ 成功新增
+          <strong>{{ request.query_params.get("symbol") }}</strong>。
+        </div>
+        {% elif request.query_params.get("msg") == "price_set" %}
+        <div
+          class="p-4 mb-6 rounded border bg-blue-100 border-blue-500 text-blue-700"
+        >
+          💾 加碼價已設定：<strong
+            >{{ request.query_params.get("symbol") }}</strong
+          >
+          → ${{ request.query_params.get("price") }}
+        </div>
+        {% elif request.query_params.get("msg") == "deleted" %}
+        <div
+          class="p-4 mb-6 rounded border bg-gray-100 border-gray-400 text-gray-700"
+        >
+          🗑️ 已刪除 <strong>{{ request.query_params.get("symbol") }}</strong>。
+        </div>
+        {% elif request.query_params.get("msg") == "error" %}
+        <div
+          class="p-4 mb-6 rounded border bg-red-100 border-red-500 text-red-700"
+        >
+          ❌ 發生錯誤：{{ request.query_params.get("error") or "未知錯誤" }}
+        </div>
+        {% endif %}
       </div>
-      {% elif request.query_params.get("msg") == "deleted" %}
-      <div
-        class="p-4 mb-6 rounded border bg-gray-100 border-gray-400 text-gray-700"
-      >
-        🗑️ 已刪除 <strong>{{ request.query_params.get("symbol") }}</strong>。
-      </div>
-      {% elif request.query_params.get("msg") == "error" %}
-      <div
-        class="p-4 mb-6 rounded border bg-red-100 border-red-500 text-red-700"
-      >
-        ❌ 發生錯誤：{{ request.query_params.get("error") or "未知錯誤" }}
-      </div>
-      {% endif %}
 
       <!-- 新增股票 -->
       <form action="/add_stock" method="post" class="flex justify-center mb-6">
@@ -64,7 +68,7 @@
         </button>
       </form>
 
-      <!-- 表格（保持你原本的程式碼） -->
+      <!-- 表格 -->
       <div class="overflow-x-auto bg-white rounded-lg shadow-md">
         <table class="min-w-full table-auto">
           <thead class="bg-gray-200 text-gray-700 text-left text-sm uppercase">
@@ -173,5 +177,29 @@
         </table>
       </div>
     </div>
+
+    <div style="margin-top: 30px">
+      <a href="/logout">🚪 登出</a>
+    </div>
+    <div class="fixed bottom-4 left-4">
+      <a
+        href="/dashboard"
+        class="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-md shadow hover:bg-gray-200 hover:text-black transition"
+      >
+        ← 返回 Dashboard
+      </a>
+    </div>
+
+    <!-- ✅ 自動隱藏訊息提示 -->
+    <script>
+      setTimeout(() => {
+        const messageBox = document.getElementById("messageBox");
+        if (messageBox) {
+          messageBox.style.transition = "opacity 0.5s ease-out";
+          messageBox.style.opacity = "0";
+          setTimeout(() => messageBox.remove(), 500);
+        }
+      }, 3000); // 3秒後執行
+    </script>
   </body>
 </html>

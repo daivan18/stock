@@ -1,5 +1,6 @@
 import yfinance as yf
 
+# Yahoo Finance股價API：取得即時股價
 def get_realtime_price(symbol: str) -> float:
     try:
         ticker = yf.Ticker(symbol)

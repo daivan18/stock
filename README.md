@@ -6,12 +6,33 @@
 
 ## 🧱 專案結構
 
-stock/ 
-├── .env              ← # 儲存 LINE access token 與其他環境變數 （不要上傳到 GitHub）
-├── .env.example      ← 範例環境變數檔，供團隊參考
-├── webhook.py # FastAPI 主程式，處理 webhook 請求 
-├── requirements.txt # 安裝依賴（選用） 
-└── README.md # 說明文件
+# 草稿
+stock/
+├── app/
+│   ├── logic/
+│   │   ├── stock_logic.py
+│   │   └── auth_logic.py       # 🔸處理登入驗證、PASETO Token 取得
+│   ├── routes/
+│   │   ├── stock_tracker.py
+│   │   ├── login.py            # 🔸只負責登入表單與調用邏輯
+│   │   └── dashboard.py
+# 草稿
+
+stock/
+├── app/
+│   ├── logic/
+│   │   ├── stock_logic.py       # 核心邏輯：股票操作（新增、刪除、更新、查詢）
+│   │   └── line_notify.py       # 測試Line推播通知功能
+│   ├── templates/
+│   │   └── stocks.html          # 前端模板：股票觀察清單頁面
+│   ├── static/                  # 靜態資源（如 CSS、JS 等）
+│   └── main.py                  # FastAPI 主程式入口
+├── db.py                        # 資料庫連線模組
+├── utils/
+│   └── stock_price.py           # 工具函式：即時股價查詢
+├── .env                         # 環境變數設定檔案
+├── requirements.txt             # Python 套件需求清單
+└── README.md                    # 專案說明文件
 
 📌 總結：哪些檔案建議上傳 GitHub？
 檔案名稱	            是否上傳	    說明
