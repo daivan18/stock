@@ -16,11 +16,16 @@ else:
     GET_PASETO_TOKEN_URL = "https://paseto-auth-service.onrender.com/api/login"
     VERIFY_PASETO_TOKEN_URL = "https://paseto-auth-service.onrender.com/api/verify"
 
-# 連接 Redis，帶入密碼
-redis_client = redis.from_url(
-    "rediss://red-d07jip49c44c73a1qka0:oP2WtzLH12w93GZxAIaWyeoxgBvAPNyU@singapore-keyvalue.render.com:6379",
-    decode_responses=True
-)
+# 根據環境判斷 Redis URL
+if os.getenv("RENDER") == "true":
+    # Render 上線環境：使用 Internal URL（不需 Allowlist）
+    redis_url = "redis://red-d07jip49c44c73a1qka0:6379"
+else:
+    # 本地測試環境：使用 External URL（需允許本機 IP）
+    redis_url = "rediss://red-d07jip49c44c73a1qka0:oP2WtzLH12w93GZxAIaWyeoxgBvAPNyU@singapore-keyvalue.render.com:6379"
+
+redis_client = redis.from_url(redis_url, decode_responses=True)
+
 # redis_client = redis.Redis(
 #     host="localhost",
 #     port=6379,

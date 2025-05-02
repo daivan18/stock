@@ -1,6 +1,5 @@
 from fastapi import FastAPI, Request
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import RedirectResponse
 from app.routes import stock_tracker, login, dashboard
 from starlette.middleware.sessions import SessionMiddleware
 

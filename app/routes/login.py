@@ -29,7 +29,6 @@ redis_client = redis.from_url(redis_url, decode_responses=True)
 #     decode_responses=True
 # )
 
-
 # 啟動FastAPI服務後，直接訪問http://127.0.0.1:8000會自動轉址到/login
 @router.get("/", response_class=HTMLResponse)
 
