@@ -5,8 +5,15 @@ import redis
 from db import get_connection
 from fastapi import Request, HTTPException, status, Depends
 
-GET_PASETO_TOKEN_URL = "http://localhost:8080/api/login"
-VERIFY_PASETO_TOKEN_URL = "http://localhost:8080/api/verify"
+# 預設為 true（表示本地環境）
+IS_LOCAL = os.getenv("IS_LOCAL", "true").lower() == "true"
+
+if IS_LOCAL:
+    GET_PASETO_TOKEN_URL = "http://localhost:8080/api/login"
+    VERIFY_PASETO_TOKEN_URL = "http://localhost:8080/api/verify"
+else:
+    GET_PASETO_TOKEN_URL = "https://paseto-auth-service.onrender.com/api/login"
+    VERIFY_PASETO_TOKEN_URL = "https://paseto-auth-service.onrender.com/api/verify"
 
 # 連接 Redis，帶入密碼
 redis_client = redis.from_url(
@@ -19,7 +26,6 @@ redis_client = redis.from_url(
 #     password="test1234",  # 加入 Redis 密碼
 #     decode_responses=True,
 # )
-
 
 # 連接Render PostgreSQL資料庫，並取得資料
 def get_user_by_username(username):
@@ -146,8 +152,6 @@ async def verify_paseto_token(request: Request):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token verification failed",
         )
-
-
 
 # async def verify_paseto_token(request: Request):
 #     try:
