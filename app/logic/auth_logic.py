@@ -2,8 +2,9 @@ import bcrypt
 import requests
 import httpx
 import redis
+import os
 from db import get_connection
-from fastapi import Request, HTTPException, status, Depends
+from fastapi import Request, HTTPException, status
 
 # 預設為 true（表示本地環境）
 IS_LOCAL = os.getenv("IS_LOCAL", "true").lower() == "true"
