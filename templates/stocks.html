@@ -75,7 +75,6 @@
             <tr>
               <th class="px-4 py-3">股票代碼</th>
               <th class="px-4 py-3">即時股價</th>
-              <th class="px-4 py-3">漲跌幅</th>
               <th class="px-4 py-3">加碼價</th>
               <th class="px-4 py-3">距現價%</th>
               <th class="px-4 py-3">更新加碼價</th>
@@ -88,31 +87,15 @@
             <tr class="border-b">
               <td class="px-4 py-3 font-semibold">{{ stock.symbol }}</td>
               <td class="px-4 py-3">${{ stock.price }}</td>
-              <td class="px-4 py-3">
-                {% if stock.change_percent is not none %} {% if
-                stock.change_percent > 0 %}
-                <span class="text-green-600 font-semibold"
-                  >+{{ stock.change_percent }}%</span
-                >
-                {% elif stock.change_percent < 0 %}
-                <span class="text-red-600 font-semibold"
-                  >{{ stock.change_percent }}%</span
-                >
-                {% else %}
-                <span class="text-gray-600">{{ stock.change_percent }}%</span>
-                {% endif %} {% else %}
-                <span class="text-gray-500">N/A</span>
-                {% endif %}
-              </td>
               <td class="px-4 py-3 text-blue-600 font-medium">
                 ${{ stock.add_price }}
               </td>
               <td class="px-4 py-3">
                 {% if stock.gap_percent is not none %} {% if stock.gap_percent >
                 0 %}
-                <span class="text-red-600">高 {{ stock.gap_percent }}%</span>
+                <span class="text-green-600">已低於加碼價 {{ stock.gap_percent }}%</span>
                 {% elif stock.gap_percent < 0 %}
-                <span class="text-green-600">低 {{ -stock.gap_percent }}%</span>
+                <span class="text-red-600">距加碼價尚差 {{ -stock.gap_percent }}%</span>
                 {% else %}
                 <span class="text-gray-500">0%</span>
                 {% endif %} {% else %}
