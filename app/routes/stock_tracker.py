@@ -1,6 +1,6 @@
 # stock_tracker.py
 from fastapi import APIRouter, Form, Request, HTTPException, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from app.logic.line_notify import send_line_message
 from app.logic.stock_logic import (
@@ -64,8 +64,17 @@ async def set_add_price(request: Request, symbol: str = Form(...), add_price: fl
         raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
+    
 @router.post("/notify")
 async def notify_test(symbol: str = Form(...)):
-    send_line_message(f"[測試] 股票 {symbol} 推播成功！")
-    return RedirectResponse("/", status_code=302)
+    try:
+        send_line_message(f"[測試] 股票 {symbol} 推播成功！")
+        return JSONResponse(
+            content={"success": True, "message": f"股票 {symbol} 推播成功！"},
+            status_code=status.HTTP_200_OK
+        )
+    except Exception as e:
+        return JSONResponse(
+            content={"success": False, "message": f"推播失敗：{str(e)}"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
