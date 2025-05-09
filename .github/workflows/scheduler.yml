@@ -2,12 +2,8 @@ name: 股票到價通知排程
 
 on:
   schedule:
-    # 台灣時間 = UTC+8 → UTC 08:00
-    # e.g. 每天上午 9 點執行：'0 1 * * *'
-    - cron: '0 1 * * *'
-    # 每 30 分鐘執行一次
-    # - cron: "*/30 * * * *" 
-  workflow_dispatch: # 允許手動執行
+    - cron: '0 1 * * *'  # 每天 9:00 AM 台灣時間
+  workflow_dispatch:
 
 jobs:
   run-notify:
@@ -26,6 +22,16 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      - name: 查詢 GitHub Actions IP
+        run: |
+          echo "📡 正在查詢 GitHub Action 的來源 IP..."
+          curl https://ifconfig.me
+
+      - name: Ping Render 資料庫 Port（5432）
+        run: |
+          echo "📡 檢查資料庫 5432 port 是否開放"
+          nc -zv dpg-cvubllk9c44c73fuovig-a.singapore-postgres.render.com 5432 || true
 
       - name: Run stock dip notify
         env:
