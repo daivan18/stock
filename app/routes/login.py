@@ -4,6 +4,7 @@ from fastapi.templating import Jinja2Templates
 from app.logic.auth_logic import verify_user_credentials_and_get_token
 import redis
 import os
+import requests
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -34,6 +35,13 @@ redis_client = redis.from_url(redis_url, decode_responses=True)
 
 @router.get("/login", response_class=HTMLResponse)
 def login_form(request: Request):
+    # 預熱 Paseto Auth 微服務，避免 Render 進入 idle 導致 503
+    try:
+        requests.get("https://paseto-auth-service.onrender.com/healthz", timeout=1)
+    except requests.exceptions.RequestException:
+        # 忽略錯誤，只是為了喚醒
+        pass
+
     return templates.TemplateResponse("login.html", {"request": request})
 
 @router.post("/login", response_class=HTMLResponse)
