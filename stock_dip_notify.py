@@ -57,8 +57,15 @@ def check_and_notify():
     user_notifications = defaultdict(str)  # key: line_id, value: notification msg
     try:
         with engine.connect() as conn:
-            # 加入 WHERE notify = 'Y' 的條件
-            result = conn.execute(text("SELECT line_id, symbol, target_price FROM watchlist WHERE notify = 'Y'"))
+            
+            result = conn.execute(text("""
+                SELECT wl.symbol, wl.target_price, users.username, users.line_id
+                FROM watchlist wl
+                INNER JOIN users
+                    ON wl.username = users.username
+                WHERE wl.target_price <> 0
+                """))
+
             for row in result:
                 user_id = row.line_id
                 symbol = row.symbol
