@@ -1,3 +1,18 @@
+"""
+line_notify.py
+
+此模組提供測試Line官方帳號發送訊息。
+主要功能：
+- 使用 LINE Bot 的 Push Message API 發送訊息。
+- 從環境變數中讀取 LINE 的存取權杖與使用者 ID。
+
+環境變數：
+- LINE_CHANNEL_TOKEN: LINE Bot 的存取權杖。
+- LINE_USER_ID: 接收訊息的使用者 ID。
+
+函式：
+- send_line_message(message): 發送文字訊息給指定的 LINE 使用者。
+"""
 import os
 import requests
 
