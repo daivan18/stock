@@ -1,73 +1,62 @@
+import os
+import redis
+import requests
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from app.logic.auth_logic import verify_user_credentials_and_get_token
-import redis
-import os
-import requests
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates")
 
-# 連接本地 Redis（開發用），正式上線改連Render
-# redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+# 💡 最佳實踐：完全不管是什麼雲端，程式碼只認 "REDIS_URL" 這個環境變數
+# 如果環境變數沒設定（例如本機開發），就預設連線到本機的 redis://localhost:6379
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
+redis_client = redis.from_url(REDIS_URL, decode_responses=True)
 
-# 根據環境判斷 Redis URL
-if os.getenv("RENDER") == "true":
-    # Render 上線環境：使用 Internal URL（不需 Allowlist）
-    redis_url = "redis://red-d07jip49c44c73a1qka0:6379"
-else:
-    # 本地測試環境：使用 External URL（需允許本機 IP）
-    redis_url = "rediss://red-d07jip49c44c73a1qka0:oP2WtzLH12w93GZxAIaWyeoxgBvAPNyU@singapore-keyvalue.render.com:6379"
-
-redis_client = redis.from_url(redis_url, decode_responses=True)
-
-# redis_client = redis.StrictRedis(
-#     host="singapore-keyvalue.render.com",
-#     username="red-d07jip49c44c73a1qka0",
-#     port=6379,
-#     password="oP2WtzLH12w93GZxAIaWyeoxgBvAPNyU",
-#     decode_responses=True
-# )
-
-# 啟動FastAPI服務後，直接訪問http://127.0.0.1:8000會自動轉址到/login
+# 修正 1：修復原本掛空的路由，讓輸入首頁 "/" 的人自動導向到 "/login"
 @router.get("/", response_class=HTMLResponse)
+def index_redirect():
+    return RedirectResponse(url="/login", status_code=302)
 
 @router.get("/login", response_class=HTMLResponse)
 def login_form(request: Request):
-    # 預熱 Paseto Auth 微服務，避免 Render 進入 idle 導致 503
+    # 預熱 Auth 微服務的網址也改用環境變數，方便未來遷移
+    AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "https://paseto-auth-service.onrender.com")
     try:
-        requests.get("https://paseto-auth-service.onrender.com/healthz", timeout=1)
+        requests.get(f"{AUTH_SERVICE_URL}/healthz", timeout=1)
     except requests.exceptions.RequestException:
-        # 忽略錯誤，只是為了喚醒
         pass
 
-    return templates.TemplateResponse("login.html", {"request": request})
+    # 💡 修正 2：改用 request.app.state.templates，刪除原本路由內的 Jinja2Templates 初始化
+    return request.app.state.templates.TemplateResponse("login.html", {"request": request})
 
 @router.post("/login", response_class=HTMLResponse)
 def login(request: Request, username: str = Form(...), password: str = Form(...)):
     try:
         success, result = verify_user_credentials_and_get_token(username, password)
         if not success:
-            return templates.TemplateResponse("login.html", {"request": request, "error": result})
+            return request.app.state.templates.TemplateResponse("login.html", {"request": request, "error": result})
 
         token = result
         
-        # 存到 Redis，Key = token，Value = username
-        redis_client.setex("access_token", 3600, token)  # 存 3600秒 (1小時)
+        # 💡 修正 3：修復 Key 覆蓋 Bug！將個別使用者的 token 辨識碼作為 Redis 的 Key
+        redis_client.setex(f"session:{token}", 3600, username) 
 
         resp = RedirectResponse("/dashboard", status_code=302)
-        # resp.set_cookie(
-        #     key="access_token",
-        #     value=token,
-        #     httponly=True,
-        #     secure=False,  # 本機用 False，上線要 True
-        #     samesite="Lax",
-        #     max_age=3600
-        # )
+        
+        # 💡 修正 4：既然登出有 delete_cookie，登入成功時記得把 Cookie 寫進去瀏覽器
+        # Secure 屬性也改由環境變數控制（本機開發為 False，線上生產環境為 True）
+        IS_COOKIE_SECURE = os.getenv("COOKIE_SECURE", "False").lower() == "true"
+        resp.set_cookie(
+            key="access_token",
+            value=token,
+            httponly=True,
+            secure=IS_COOKIE_SECURE,  
+            samesite="Lax",
+            max_age=3600
+        )
         return resp
     except Exception as e:
-        return templates.TemplateResponse("login.html", {"request": request, "error": f"登入失敗：{str(e)}"})
+        return request.app.state.templates.TemplateResponse("login.html", {"request": request, "error": f"登入失敗：{str(e)}"})
     
 @router.get("/logout")
 def logout():
